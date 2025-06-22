@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+
+
+generator client {
+  provider = "prisma-client-js"
+    output   = "../src/generated/prisma"
+
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  FREE
+  PREMIUM
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  password      String?
+  role          Role      @default(FREE)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  invitations Invitation[]
+
+  @@map("users")
+}
+
+model Invitation {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  slug          String    @unique // Custom slug for the invitation URL
+  title         String
+  templateId    String    @map("template_id") // Reference to the chosen template
+  eventDate     DateTime  @map("event_date")
+  eventTime     String    @map("event_time")
+  location      String
+  googleMapsUrl String?   @map("google_maps_url")
+  description   String?
+  musicUrl      String?   @map("music_url")
+  loveStory     Json?     @map("love_story") // JSON array of love story entries
+  digitalGift   Json?     @map("digital_gift") // JSON object for bank/QRIS details
+  galleryImages Json?     @map("gallery_images") // JSON array of image URLs
+  enableRsvp    Boolean   @default(true) @map("enable_rsvp")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rsvps         RSVP[]
+  guestMessages GuestMessage[]
+
+  @@map("invitations")
+}
+
+model RSVP {
+  id             String    @id @default(cuid())
+  invitationId   String    @map("invitation_id")
+  guestName      String    @map("guest_name")
+  attendance     Boolean   // True if attending, False if not
+  numberOfGuests Int?      @map("number_of_guests") // How many people are coming
+  message        String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@map("rsvps")
+}
+
+model GuestMessage {
+  id           String    @id @default(cuid())
+  invitationId String    @map("invitation_id")
+  senderName   String    @map("sender_name")
+  message      String
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@map("guest_messages")
+}
+
